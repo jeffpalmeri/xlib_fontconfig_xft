@@ -1,0 +1,21 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16",
+      "-I/usr/include/harfbuzz",
+      "-I/usr/include/glib-2.0",
+      "-I/usr/lib/glib-2.0/include",
+      "-I/usr/include/sysprof-6",
+      "-pthread",
+      "-o",
+      "main.o",
+      "main.c"
+    ],
+    "directory": "/home/jeff/personal/xlib-experiments",
+    "file": "/home/jeff/personal/xlib-experiments/main.c",
+    "output": "/home/jeff/personal/xlib-experiments/main.o"
+  }
+]
