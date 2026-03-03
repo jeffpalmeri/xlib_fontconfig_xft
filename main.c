@@ -1,13 +1,13 @@
 #include <X11/extensions/Xrender.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
 #include <errno.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include <unistd.h>
 
-#include <X11/Xlib.h>
 #include <X11/Xft/Xft.h>
+#include <X11/Xlib.h>
 
 #include <fontconfig/fontconfig.h>
 
@@ -16,7 +16,7 @@
 
 #include "stuff.h"
 
-#define MAX(a, b)		((a) < (b) ? (b) : (a))
+#define MAX(a, b) ((a) < (b) ? (b) : (a))
 #define MAX_SNAME 1000
 
 int height = 1200;
@@ -49,7 +49,6 @@ void die(const char *errString, ...) {
 //   int mode;
 // } Term;
 
-
 Display *display;
 XftFont *font;
 XftColor xft_font_color;
@@ -66,50 +65,48 @@ int masterFd;
 //   rab.y = 0;
 //   rab.height = font->height;
 //   rab.width = font->max_advance_width;
-//   XftDrawRect(draw, color, term.cursor_x, term.cursor_y - font->ascent, rab.width, rab.height);
+//   XftDrawRect(draw, color, term.cursor_x, term.cursor_y - font->ascent,
+//   rab.width, rab.height);
 // }
 
-void drawGlyph()
-{
-
-}
+void drawGlyph() {}
 
 void handleKeyPress(XEvent *e) {}
 
 static void (*handler[LASTEvent])(XEvent *) = {
-  [KeyPress] = handleKeyPress,
+    [KeyPress] = handleKeyPress,
 };
 
-char* font1 = "Hack Nerd Font:pixelsize=28:antialias=true:autohint=true";
+char *font1 = "Hack Nerd Font:pixelsize=28:antialias=true:autohint=true";
 
-FcPattern* loadFont()
-{
-  if(!FcInit()) {
+FcPattern *loadFont() {
+  if (!FcInit()) {
     die("FcInit failed\n");
   }
 
-  FcPattern* pattern = FcNameParse((const FcChar8 *)font1);
-  if(!pattern) {
+  FcPattern *pattern = FcNameParse((const FcChar8 *)font1);
+  if (!pattern) {
     FcFini();
     die("Could not parse font name\n");
   }
 
-  FcChar8* family;
-  FcChar8* file;
+  FcChar8 *family;
+  FcChar8 *file;
   double size;
   double pixelsize;
 
-  if(FcPatternGetString(pattern, FC_FAMILY, 0, &family) == FcResultMatch) {
+  if (FcPatternGetString(pattern, FC_FAMILY, 0, &family) == FcResultMatch) {
     printf("Font family: %s\n", family);
   }
 
-  if(FcPatternGetString(pattern, FC_FILE, 0, &file) == FcResultMatch) {
+  if (FcPatternGetString(pattern, FC_FILE, 0, &file) == FcResultMatch) {
     printf("Font file: %s\n", file);
   } else {
     printf("No file?\n");
   }
 
-  if(FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &pixelsize) == FcResultMatch) {
+  if (FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &pixelsize) ==
+      FcResultMatch) {
     printf("Pixel size: %.1f\n", pixelsize);
   } else {
     printf("No size?\n");
@@ -118,7 +115,7 @@ FcPattern* loadFont()
   FcPatternAddDouble(pattern, FC_PIXEL_SIZE, 12);
   FcPatternAddDouble(pattern, FC_SIZE, 12);
 
-  if(FcPatternGetDouble(pattern, FC_SIZE, 0, &size) == FcResultMatch) {
+  if (FcPatternGetDouble(pattern, FC_SIZE, 0, &size) == FcResultMatch) {
     printf("Font size: %.1f\n", size);
   } else {
     printf("No size?\n");
@@ -131,14 +128,14 @@ FcPattern* loadFont()
   FcResult result;
   FcPattern *match = FcFontMatch(NULL, pattern, &result);
 
-  if(result != FcResultMatch) {
+  if (result != FcResultMatch) {
     fprintf(stderr, "Font match failed: %d\n", result);
   }
 
   printf("Font match seems to have succeeded\n");
   printf("Trying file again now\n");
 
-  if(FcPatternGetString(match, FC_FILE, 0, &file) == FcResultMatch) {
+  if (FcPatternGetString(match, FC_FILE, 0, &file) == FcResultMatch) {
     printf("Font file: %s\n", file);
   } else {
     fprintf(stderr, "No file, but should have one\n");
@@ -149,21 +146,20 @@ FcPattern* loadFont()
   return match;
 }
 
-XftFont* openXft(Display *display, FcPattern *match)
-{
+XftFont *openXft(Display *display, FcPattern *match) {
   font = XftFontOpenPattern(display, match);
-  if(!font) die("XftFontOpenPattern failed\n");
+  if (!font)
+    die("XftFontOpenPattern failed\n");
 
   printf("Xft font opened successfully\n");
 
-  printf("Loaded font: ascent=%d descent=%d max_advance=%d\n", 
-      font->ascent, font->descent, font->max_advance_width);
+  printf("Loaded font: ascent=%d descent=%d max_advance=%d\n", font->ascent,
+         font->descent, font->max_advance_width);
 
   return font;
 }
 
-int main(int argc, char** argv)
-{
+int main(int argc, char **argv) {
   memset(&cs, 0, sizeof(cs));
   const int maxSnLen = 1000;
   char slaveName[1000];
@@ -171,25 +167,25 @@ int main(int argc, char** argv)
   struct termios ttyOrig;
   struct winsize ws;
   char *shell;
-  if(tcgetattr(STDIN_FILENO, &ttyOrig) == -1) {
+  if (tcgetattr(STDIN_FILENO, &ttyOrig) == -1) {
     die("tcgetattr");
   }
-  if(ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0) {
+  if (ioctl(STDIN_FILENO, TIOCGWINSZ, &ws) < 0) {
     die("ioctl-TIOCGWINSZ");
   }
   // int masterFd = ptyMasterOpen(slaveName, maxSnLen);
   pid_t childPid = ptyFork(&masterFd, slaveName, MAX_SNAME, &ttyOrig, &ws);
-  if(childPid == 0) {
+  if (childPid == 0) {
     // shell = getenv("SHELL");
     // if(shell == NULL || *shell == '\0') shell = "/bin/sh";
     shell = "/bin/sh";
-    execlp(shell, shell, (char *) NULL);
+    execlp(shell, shell, (char *)NULL);
     die("execlp"); // If we get here, something went wrong
   }
 
   printf("masterFd %i\n", masterFd);
 
-  term = (Term){ 24, 80, 50, 100, 0 };
+  term = (Term){24, 80, 50, 100, 0};
 
   display = XOpenDisplay(NULL);
   printf("Dispay opened\n");
@@ -211,21 +207,11 @@ int main(int argc, char** argv)
   attrs.event_mask = ExposureMask | KeyPressMask | StructureNotifyMask;
 
   Window window = XCreateWindow(
-      display,
-      parent,
-      0,
-      0,
-      width,
-      height,
-      0,
-      XDefaultDepth(display, screen),
-      InputOutput,
-      visual,
-      CWBackPixel | CWColormap | CWEventMask,
-      &attrs
-  );
+      display, parent, 0, 0, width, height, 0, XDefaultDepth(display, screen),
+      InputOutput, visual, CWBackPixel | CWColormap | CWEventMask, &attrs);
 
-  if(!window) die("XCreateWindow failed\n");
+  if (!window)
+    die("XCreateWindow failed\n");
 
   printf("Complete, window id is %lu\n", window);
 
@@ -233,7 +219,7 @@ int main(int argc, char** argv)
   XftFont *font = openXft(display, match);
   draw = XftDrawCreate(display, window, visual, colormap);
 
-  XRenderColor xr = {0x0000, 0x0000 , 0x0000, 0xffff};
+  XRenderColor xr = {0x0000, 0x0000, 0x0000, 0xffff};
   XftColorAllocValue(display, visual, colormap, &xr, &xft_font_color);
 
   XRenderColor bgxr = {grey.red, grey.green, grey.blue, 0xffff};
@@ -242,7 +228,7 @@ int main(int argc, char** argv)
   printf("xft colors allocated\n");
 
   printf("\nStarting rendering next\n");
-  
+
   XMapWindow(display, window);
   GC gc = XCreateGC(display, window, 0, NULL);
   XSetForeground(display, gc, BlackPixel(display, screen));
@@ -264,26 +250,27 @@ int main(int argc, char** argv)
   rab.y = 0;
   rab.height = font->height;
   rab.width = font->max_advance_width;
-  XftDrawRect(draw, &xft_font_color, term.cursor_x, term.cursor_y - font->ascent, rab.width, rab.height);
+  XftDrawRect(draw, &xft_font_color, term.cursor_x,
+              term.cursor_y - font->ascent, rab.width, rab.height);
 
   int xfd = XConnectionNumber(display);
   char buf[256];
   // while(XPending(display)) {
-  while(1) {
+  while (1) {
     fd_set rfd;
     FD_ZERO(&rfd);
     FD_SET(masterFd, &rfd);
     FD_SET(xfd, &rfd);
-  //   struct timespec seltv, *tv;
-		// tv = timeout >= 0 ? &seltv : NULL;
+    //   struct timespec seltv, *tv;
+    // tv = timeout >= 0 ? &seltv : NULL;
 
-		if (pselect(MAX(xfd, masterFd)+1, &rfd, NULL, NULL, NULL, NULL) < 0) {
-			if (errno == EINTR)
-				continue;
-			die("select failed: %s\n", strerror(errno));
-		}
+    if (pselect(MAX(xfd, masterFd) + 1, &rfd, NULL, NULL, NULL, NULL) < 0) {
+      if (errno == EINTR)
+        continue;
+      die("select failed: %s\n", strerror(errno));
+    }
 
-    if(FD_ISSET(masterFd, &rfd)) {
+    if (FD_ISSET(masterFd, &rfd)) {
       ssize_t numRead = read(masterFd, buf, 256);
       printf("**** numRead from masterFd: %zd\n", numRead);
       // printf("And what the heck did I actually read?: %s\n", buf);
@@ -298,12 +285,12 @@ int main(int argc, char** argv)
       vtParse2(buf, numRead);
     }
 
-		while (XPending(display)) {
+    while (XPending(display)) {
       XNextEvent(display, &evt);
       printf("---------start-------------\n");
       printf("Event type is %d\n", evt.type);
 
-      if(evt.type == KeyPress) {
+      if (evt.type == KeyPress) {
         XKeyEvent *xke = &evt.xkey;
         KeySym keysym = NoSymbol;
         char buf[64];
@@ -314,7 +301,7 @@ int main(int argc, char** argv)
         printf("KeyPress len is: %d\n", len);
         printf("KeyPress buf is: %s\n", buf);
         printf("KeyPress buf in hex: ");
-        for(int i = 0; i < len; i++) {
+        for (int i = 0; i < len; i++) {
           printf("0x%02x ", (unsigned char)buf[i]);
         }
         printf("\n");
@@ -322,12 +309,12 @@ int main(int argc, char** argv)
         printf("KeySym to string is: %s\n", XKeysymToString(keysym));
         printf("==========\n\n");
 
-        if(xke->state & Mod1Mask) {
+        if (xke->state & Mod1Mask) {
           printf("Typed with ALT held down and len is %d\n", len);
         }
 
         // if(keysym == 65293) { // return
-        if(keysym == XK_Return) { // return
+        if (keysym == XK_Return) { // return
           // Delete the cursor from the end of the line
           drawCursor(font, &xft_bg_color, draw);
 
@@ -344,8 +331,8 @@ int main(int argc, char** argv)
           continue;
         }
 
-        if(keysym == 65288) { // backspace
-                              //
+        if (keysym == 65288) { // backspace
+                               //
           printf("Backspace!\n");
           // Delete the previous cursor
           drawCursor(font, &xft_bg_color, draw);
@@ -363,7 +350,8 @@ int main(int argc, char** argv)
           int x = term.cursor_x;
           int y = term.cursor_y;
 
-          XftDrawRect(draw, &xft_bg_color, x, y - font->ascent, cell_width, cell_height); // width and height?
+          XftDrawRect(draw, &xft_bg_color, x, y - font->ascent, cell_width,
+                      cell_height); // width and height?
           XftDrawSetClipRectangles(draw, x, y - font->ascent, &r, 1);
           XftDrawSetClip(draw, 0);
 
@@ -373,23 +361,23 @@ int main(int argc, char** argv)
           continue;
         }
 
-        if(len > 0) {
-          // Maybe using XKeysymToString is the more correct way than doing this?
+        if (len > 0) {
+          // Maybe using XKeysymToString is the more correct way than doing
+          // this?
           buf[len] = '\0';
           unsigned int codepoint = (unsigned char)buf[0];
           printf("Ok getting serious, the letter typed is %s\n", buf);
 
-          FT_UInt glyph = XftCharIndex(display, font, codepoint); 
+          FT_UInt glyph = XftCharIndex(display, font, codepoint);
           printf("XftCharIndex() seems to be called successfully %u\n", glyph);
           // XftColor xft_font_color;
           // XRenderColor xr = {0x0000, 0x0000 , 0x0000, 0xffff};
-          // XftColorAllocValue(display, visual, colormap, &xr, &xft_font_color);
-          // printf("xft color allocated\n");
+          // XftColorAllocValue(display, visual, colormap, &xr,
+          // &xft_font_color); printf("xft color allocated\n");
 
           int cell_width = font->max_advance_width;
           // int cell_height = font->ascent + font->descent;
           int cell_height = font->height;
-
 
           XRectangle r;
           r.x = 0;
@@ -406,10 +394,9 @@ int main(int argc, char** argv)
 
           // Commenting out the actual drawing of text for now
           /*
-          XftDrawRect(draw, &xft_bg_color, x, y - font->ascent, cell_width, cell_height); // width and height?
-          XftDrawSetClipRectangles(draw, x, y - font->ascent, &r, 1);
-          XftGlyphFontSpec spec;
-          spec.font = font;
+          XftDrawRect(draw, &xft_bg_color, x, y - font->ascent, cell_width,
+          cell_height); // width and height? XftDrawSetClipRectangles(draw, x, y
+          - font->ascent, &r, 1); XftGlyphFontSpec spec; spec.font = font;
           spec.glyph = glyph;
           spec.x = x;
           spec.y = y;
@@ -421,8 +408,8 @@ int main(int argc, char** argv)
 
           // term.cursor_x += font->max_advance_width;
 
-          // Draw the new cursor position, since last char has been drawn, and x position updated
-          // drawCursor(font, &xft_font_color, draw);
+          // Draw the new cursor position, since last char has been drawn, and x
+          // position updated drawCursor(font, &xft_font_color, draw);
         }
       }
     }
@@ -430,4 +417,3 @@ int main(int argc, char** argv)
 
   return 0;
 }
-

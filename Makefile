@@ -1,6 +1,6 @@
 main: main.o pty.o ptyFork.o stuff.o
 	# gcc main.o -o main -lX11 -lfontconfig -lXft -lfreetype
-	gcc -g -O0 main.o pty.o ptyFork.o stuff.o -o main `pkg-config --libs x11 xft fontconfig`
+	gcc -g -O0 main.o pty.o ptyFork.o stuff.o -o build/main `pkg-config --libs x11 xft fontconfig`
 
 main.o: main.c
 	# gcc -c main.c -o main.o `pkg-config --cflags freetype2`
@@ -23,7 +23,7 @@ test.o: test.c
 
 .PHONY: test
 test: test.o stuff.o
-	gcc -g -O0 test.o stuff.o -o test && ./test
+	gcc -g -O0 test.o stuff.o -o build/test `pkg-config --libs x11 xft fontconfig` && ./build/test
 
 # script: script.o pty.o ptyFork.o tty_functions.o
 # 	gcc script.o pty.o ptyFork.o tty_functions.o -o script
@@ -37,7 +37,7 @@ test: test.o stuff.o
 ############################################
 
 script: script.o pty2.o ptyFork2.o tty_functions.o
-	gcc script.o pty2.o ptyFork2.o tty_functions.o from_book/lib/error_functions.o -o script
+	gcc script.o pty2.o ptyFork2.o tty_functions.o from_book/lib/error_functions.o -o build/script
 
 script.o: from_book/script.c pty2.o ptyFork2.o tty_functions.o
 	gcc -c from_book/script.c -o script.o 
@@ -64,7 +64,7 @@ clean2:
 ############################################
 
 nogui: nogui.o from_book/lib/error_functions.o ptyFork.o pty.o
-	gcc nogui.o from_book/lib/error_functions.o ptyFork.o pty.o -o nogui
+	gcc nogui.o from_book/lib/error_functions.o ptyFork.o pty.o -o build/nogui
 
 nogui.o: nogui.c
 	gcc -c nogui.c -o nogui.o

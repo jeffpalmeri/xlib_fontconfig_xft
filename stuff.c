@@ -170,25 +170,6 @@ void write_char(const char *p) {
   char buf[64];
   int len;
 
-  // len = XLookupString(xke, buf, sizeof buf, &keysym, NULL);
-  // printf("==========\n");
-  // printf("KeyPress len is: %d\n", len);
-  // printf("KeyPress buf is: %s\n", buf);
-  // printf("KeyPress buf in hex: ");
-  // for (int i = 0; i < len; i++) {
-  //   printf("0x%02x ", (unsigned char)buf[i]);
-  // }
-  // printf("\n");
-  // printf("KeySym is: %lu\n", keysym);
-  // printf("KeySym to string is: %s\n", XKeysymToString(keysym));
-  // printf("==========\n\n");
-  //
-  // if (xke->state & Mod1Mask) {
-  //   printf("Typed with ALT held down and len is %d\n", len);
-  // }
-  // if (len > 0) {
-    // Maybe using XKeysymToString is the more correct way than doing this?
-    // buf[len] = '\0';
     buf[0] = *p;
     buf[1] = '\0';
     printf("What's the p pointer: %c\n", *p);

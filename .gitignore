@@ -2,3 +2,5 @@ main
 *.o
 
 /.cache
+/from_book
+/build
