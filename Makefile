@@ -19,11 +19,11 @@ stuff.o: stuff.c
 	gcc -c -g -O0 stuff.c -o stuff.o `pkg-config --cflags x11 xft fontconfig`
 
 test.o: test.c
-	gcc -c -g -O0 test.c -o test.o
+	gcc -c -g -O0 test.c -o test.o `pkg-config --libs x11 xft fontconfig --cflags x11 xft fontconfig`
 
 .PHONY: test
 test: test.o stuff.o
-	gcc -g -O0 test.o stuff.o -o build/test `pkg-config --libs x11 xft fontconfig` && ./build/test
+	gcc -g -O0 test.o stuff.o -o build/test `pkg-config --libs x11 xft fontconfig ` && ./build/test
 
 # script: script.o pty.o ptyFork.o tty_functions.o
 # 	gcc script.o pty.o ptyFork.o tty_functions.o -o script

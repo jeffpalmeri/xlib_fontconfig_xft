@@ -282,7 +282,8 @@ int main(int argc, char **argv) {
       printf("----------end------------\n");
       printf("\n\n\n\n\n");
 
-      vtParse2(buf, numRead);
+      // vtParse2(buf, numRead);
+      vtParse3(buf, numRead, write_char);
     }
 
     while (XPending(display)) {

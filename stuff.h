@@ -30,6 +30,7 @@ typedef struct CS {
 void printCS();
 void vtParse(char b);
 void vtParse2(const char *p, int size);
+void vtParse3(const char *p, int size, void (*wc)(const char*));
 int csi_ending_char(char b);
 void parse_csi();
 void handle_csi();

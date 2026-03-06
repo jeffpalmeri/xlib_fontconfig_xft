@@ -98,6 +98,41 @@ void vtParse2(const char *p, int size) {
   printf("DONEZOOOOOOO\n");
 }
 
+void vtParse3(const char *p, int size, void (*wc)(const char*)) {
+  for (int i = 0; i < size; i++) {
+    char b = p[i];
+    if (term.esc == 0) {
+      if (b == 0x1b) {
+        term.esc |= ESC_START;
+        continue;
+      }
+
+      // write normal char here?
+      // write_char(p+i);
+      wc(p+i);
+      continue;
+    }
+    if (term.esc & ESC_START) {
+      if (b == 0x5b) {
+        term.esc |= ESC_CSI;
+        continue;
+      }
+    }
+    if (term.esc && ESC_CSI) {
+      cs.buf[cs.len++] = b;
+      if (csi_ending_char(b)) { // 64-126
+        term.esc = 0;
+        parse_csi();
+        printf("PRINTING CS!!\n");
+        printCS();
+        handle_csi();
+      }
+    }
+  }
+  // cs.buf[cs.len] = '\0';
+  printf("DONEZOOOOOOO\n");
+}
+
 int csi_ending_char(char b) { return b > 64 && b < 126; }
 
 void parse_csi() {
