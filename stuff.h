@@ -1,5 +1,8 @@
 #include <X11/Xft/Xft.h>
 
+#define MARGIN_LEFT 50
+#define MARGIN_TOP 100
+
 enum terminal_mode {
   csi
 };
@@ -8,6 +11,7 @@ enum escape_state {
   ESC_START = 1 << 0, // 1
   ESC_CSI   = 1 << 1, // 2;
 };
+
 
 typedef struct Line {
   int row;
@@ -47,3 +51,9 @@ void write_char(const char *p);
 void write_char2(Line *line);
 
 void drawCursor(XftFont *font, XftColor *color, XftDraw *draw);
+
+typedef struct XY {
+  int x;
+  int y;
+} XY;
+XY coord_TermToWin(int x, int y);

@@ -21,6 +21,12 @@ extern XftDraw *draw;
 extern XftColor xft_font_color;
 extern XftColor xft_bg_color;
 
+XY coord_TermToWin(int x, int y) {
+  int xp = MARGIN_LEFT + (y-MARGIN_TOP)*font->max_advance_width;
+  int yp = MARGIN_TOP + ((x - 50)*(font->ascent * ASCENT_MULT));
+  return (XY){xp, yp};
+}
+
 void printCS() {
   printf("CS {\n");
   printf("  buf: %s\n", cs.buf);
@@ -42,10 +48,11 @@ void drawCursor(XftFont *font, XftColor *color, XftDraw *draw) {
   rab.y = 0;
   rab.height = font->height;
   rab.width = font->max_advance_width;
+  XY c = coord_TermToWin(term.cursor_x, term.cursor_y);
   XftDrawRect(draw, color, 
-      // term.cursor_x+(term.cursor_y-100)*font->max_advance_width,
-      50+(term.cursor_y-100)*font->max_advance_width,
-      100+(((term.cursor_x-50)*(font->ascent * ASCENT_MULT))-font->ascent),
+      // 50+(term.cursor_y-100)*font->max_advance_width,
+      // 100+(((term.cursor_x-50)*(font->ascent * ASCENT_MULT))-font->ascent),
+      c.x, c.y-font->ascent,
       rab.width, rab.height);
 }
 
@@ -322,26 +329,19 @@ void write_char2(Line *line) {
     r.height = cell_height;
     r.width = cell_width;
 
-    // int x = term.cursor_x*font->max_advance_width;
-    // int y = term.cursor_y*font->ascent;
-    //
-    // int x = (line->row-50)*font->max_advance_width + 50;
-    // int y = line->col;
+    // int x = 50+(line->col-100)*font->max_advance_width;
+    // int y = 100 + ((line->row - 50)*(font->ascent * ASCENT_MULT));
 
-    // int x = (line->row)*font->max_advance_width;
-    // int x = line->row+(line->col-100)*font->max_advance_width;
-    int x = 50+(line->col-100)*font->max_advance_width;
-    // int y = line->row+50;
-    int y = 100 + ((line->row - 50)*(font->ascent * ASCENT_MULT));
+    XY c = coord_TermToWin(line->row, line->col);
 
 
-    XftDrawRect(draw, &xft_bg_color, x, y - font->ascent, cell_width, cell_height); // width and height? 
-    XftDrawSetClipRectangles(draw, x, y - font->ascent, &r, 1); 
+    XftDrawRect(draw, &xft_bg_color, c.x, c.y - font->ascent, cell_width, cell_height); // width and height? 
+    XftDrawSetClipRectangles(draw, c.x, c.y - font->ascent, &r, 1); 
     XftGlyphFontSpec spec; 
     spec.font = font; 
     spec.glyph = glyph; 
-    spec.x = x; 
-    spec.y = y;
+    spec.x = c.x; 
+    spec.y = c.y;
     // spec.x = 50;
     // spec.y = 100;
 
