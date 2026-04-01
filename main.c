@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
 
   printf("masterFd %i\n", masterFd);
 
-  term = (Term){100, 160, 0, 0, 0, 0, 0};
+  term = (Term){100, 160, 0, 0, 0, 0, 0, 0, 0};
   term.lines = malloc(sizeof(Line*) * term.rows);
   for(int i = 0; i < term.rows; i++) {
     term.lines[i] = malloc(sizeof(Line) * term.cols);
@@ -288,12 +288,10 @@ int main(int argc, char **argv) {
       printf("----------end------------\n");
       printf("\n\n\n\n\n");
 
-      // vtParse2(buf, numRead);
       vtParse3(buf, numRead, &term, &cs, handle_csi);
       for(int x = 0; x < term.rows; x++) {
         for(int y = 0; y < term.cols; y++) {
           if(term.lines[x][y].dirty == 1) {
-            // write_char(&term.lines[i][j].c);
             write_char2(&term.lines[x][y]);
             term.lines[x][y].dirty = 0;
           }

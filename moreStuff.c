@@ -37,7 +37,7 @@ void vtParse3(const char *p, int size, Term *term, CS *cs, void (*handle_csi)(CS
         // term.cursor_y = 100;
       } else if(*(p+i) == 9) {
         printf("THIS IS A HORIZONTAL TAB!!!!!!!\n");
-      }else {
+      } else {
         term->lines[term->cursor_x][term->cursor_y] = (Line){
           .row = term->cursor_x,
           .col = term->cursor_y,

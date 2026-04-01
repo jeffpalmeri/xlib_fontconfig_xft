@@ -27,12 +27,26 @@ XY coord_TermToWin(int x, int y) {
 }
 
 void drawCursor(XftFont *font, XftColor *color, XftDraw *draw) {
+  term.old_cursor_x = term.cursor_x;
+  term.old_cursor_y = term.cursor_y;
   XRectangle rab;
   rab.x = 0;
   rab.y = 0;
   rab.height = font->height;
   rab.width = font->max_advance_width;
   XY c = coord_TermToWin(term.cursor_x, term.cursor_y);
+  XftDrawRect(draw, color, 
+      c.x, c.y-font->ascent,
+      rab.width, rab.height);
+}
+
+void eraseCursor(XftFont *font, XftColor *color, XftDraw *draw) {
+  XRectangle rab;
+  rab.x = 0;
+  rab.y = 0;
+  rab.height = font->height;
+  rab.width = font->max_advance_width;
+  XY c = coord_TermToWin(term.old_cursor_x, term.old_cursor_y);
   XftDrawRect(draw, color, 
       c.x, c.y-font->ascent,
       rab.width, rab.height);
@@ -179,6 +193,7 @@ void write_char2(Line *line) {
     r.height = cell_height;
     r.width = cell_width;
 
+    eraseCursor(font, &xft_bg_color, draw);
     XY c = coord_TermToWin(line->row, line->col);
 
     XftDrawRect(draw, &xft_bg_color, c.x, c.y - font->ascent, cell_width, cell_height); // width and height? 
@@ -194,10 +209,5 @@ void write_char2(Line *line) {
 
     XftDrawSetClip(draw, 0);
 
-
-    // term.cursor_x += font->max_advance_width;
-
-    // Draw the new cursor position, since last char has been drawn, and x
-    // position updated
     drawCursor(font, &xft_font_color, draw);
 }

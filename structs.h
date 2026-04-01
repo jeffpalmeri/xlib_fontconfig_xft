@@ -25,9 +25,9 @@ typedef struct Term {
   int cursor_y;
   int mode;
   int esc;
+  int old_cursor_x;
+  int old_cursor_y;
   Line **lines;
-  // int old_cursor_x;
-  // int old_cursor_y;
 } Term;
 
 typedef struct XY {

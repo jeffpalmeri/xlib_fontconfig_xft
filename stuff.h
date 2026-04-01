@@ -13,6 +13,7 @@ void write_char(const char *p);
 void write_char2(Line *line);
 
 void drawCursor(XftFont *font, XftColor *color, XftDraw *draw);
+void eraseCursor(XftFont *font, XftColor *color, XftDraw *draw);
 
 XY coord_TermToWin(int x, int y);
 
