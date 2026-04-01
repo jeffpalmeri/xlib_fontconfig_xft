@@ -26,6 +26,8 @@ typedef struct Term {
   int mode;
   int esc;
   Line **lines;
+  // int old_cursor_x;
+  // int old_cursor_y;
 } Term;
 
 typedef struct XY {

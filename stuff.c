@@ -21,8 +21,8 @@ extern XftColor xft_font_color;
 extern XftColor xft_bg_color;
 
 XY coord_TermToWin(int x, int y) {
-  int xp = MARGIN_LEFT + (y-MARGIN_TOP)*font->max_advance_width;
-  int yp = MARGIN_TOP + ((x - 50)*(font->ascent * ASCENT_MULT));
+  int xp = MARGIN_LEFT + (y)*font->max_advance_width;
+  int yp = MARGIN_TOP + ((x)*(font->ascent * ASCENT_MULT));
   return (XY){xp, yp};
 }
 
@@ -34,8 +34,6 @@ void drawCursor(XftFont *font, XftColor *color, XftDraw *draw) {
   rab.width = font->max_advance_width;
   XY c = coord_TermToWin(term.cursor_x, term.cursor_y);
   XftDrawRect(draw, color, 
-      // 50+(term.cursor_y-100)*font->max_advance_width,
-      // 100+(((term.cursor_x-50)*(font->ascent * ASCENT_MULT))-font->ascent),
       c.x, c.y-font->ascent,
       rab.width, rab.height);
 }

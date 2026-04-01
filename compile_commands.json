@@ -54,5 +54,21 @@
     ],
     "directory": "/home/jeff/personal/xlib-experiments",
     "output": "stuff.o"
+  },
+  {
+    "file": "moreStuff.c",
+    "arguments": [
+      "gcc",
+      "-c",
+      "-g",
+      "-O0",
+      "moreStuff.c",
+      "-o",
+      "moreStuff.o",
+      "-I/usr/include/freetype2",
+      "-I/usr/include/libpng16"
+    ],
+    "directory": "/home/jeff/personal/xlib-experiments",
+    "output": "moreStuff.o"
   }
 ]

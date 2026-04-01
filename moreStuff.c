@@ -28,7 +28,7 @@ void vtParse3(const char *p, int size, Term *term, CS *cs, void (*handle_csi)(CS
         // Don't actually print a new line
         // Move our x position down a row.
         term->cursor_x++;
-        term->cursor_y = 100;
+        term->cursor_y = 0;
       } else if(*(p+i) == 13) {
         printf("THIS IS A CARRIAGE RETURN!!!!!!!\n");
         // Don't actually print a new line
@@ -38,14 +38,14 @@ void vtParse3(const char *p, int size, Term *term, CS *cs, void (*handle_csi)(CS
       } else if(*(p+i) == 9) {
         printf("THIS IS A HORIZONTAL TAB!!!!!!!\n");
       }else {
-        term->lines[term->cursor_x-50][term->cursor_y-100] = (Line){
+        term->lines[term->cursor_x][term->cursor_y] = (Line){
           .row = term->cursor_x,
           .col = term->cursor_y,
           .dirty = 1,
           .c = *(p+i),
         };
-        if(term->cursor_y-100 + 1 >= term->cols) {
-          term->cursor_y = 100;
+        if(term->cursor_y-+ 1 >= term->cols) {
+          term->cursor_y = 0;
           term->cursor_x++;
         } else {
           term->cursor_y++;

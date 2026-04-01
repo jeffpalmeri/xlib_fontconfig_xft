@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
 
   printf("masterFd %i\n", masterFd);
 
-  term = (Term){100, 160, 50, 100, 0, 0, 0};
+  term = (Term){100, 160, 0, 0, 0, 0, 0};
   term.lines = malloc(sizeof(Line*) * term.rows);
   for(int i = 0; i < term.rows; i++) {
     term.lines[i] = malloc(sizeof(Line) * term.cols);
