@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-#include "stuff.h"
+#include "structs.h"
+#include "moreStuff.h"
 
 /*
  * When starting the terminal for the first time
@@ -83,7 +84,8 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-void wc(const char *c) {}
+void wc(const char *c) {};
+void handle(CS *cs) {};
 
 /*
  * TestCase #1
@@ -95,7 +97,7 @@ void TestCase(const char *bytes, int num_bytes, CS *expectCs) {
   memset(&cs, 0, sizeof(cs));
   memset(&cs.buf, 0xAA, sizeof(cs.buf));
 
-  vtParse3(bytes, num_bytes, wc);
+  vtParse3(bytes, num_bytes, &term, &cs, handle);
   // assert(strcmp(cs.buf, expectCs->buf) == 0);
   // cs.buf[6] = 'a';
   printf("first %x\n", cs.buf[6]);

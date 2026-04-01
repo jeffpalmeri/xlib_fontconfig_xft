@@ -1,6 +1,6 @@
-main: main.o pty.o ptyFork.o stuff.o
+main: main.o pty.o ptyFork.o stuff.o moreStuff.o
 	# gcc main.o -o main -lX11 -lfontconfig -lXft -lfreetype
-	gcc -g -O0 main.o pty.o ptyFork.o stuff.o -o build/main `pkg-config --libs x11 xft fontconfig`
+	gcc -g -O0 main.o pty.o ptyFork.o stuff.o moreStuff.o -o build/main `pkg-config --libs x11 xft fontconfig`
 
 main.o: main.c
 	# gcc -c main.c -o main.o `pkg-config --cflags freetype2`
@@ -19,12 +19,15 @@ clean:
 stuff.o: stuff.c
 	gcc -c -g -O0 stuff.c -o stuff.o `pkg-config --cflags x11 xft fontconfig`
 
+moreStuff.o: moreStuff.c
+	gcc -c -g -O0 moreStuff.c -o moreStuff.o `pkg-config --cflags x11 xft fontconfig`
+
 test.o: test.c
 	gcc -c -g -O0 test.c -o test.o `pkg-config --libs x11 xft fontconfig --cflags x11 xft fontconfig`
 
 .PHONY: test
-test: test.o stuff.o
-	gcc -g -O0 test.o stuff.o -o build/test `pkg-config --libs x11 xft fontconfig ` && ./build/test
+test: test.o moreStuff.o
+	gcc -g -O0 test.o moreStuff.o -o build/test `pkg-config --libs x11 xft fontconfig ` && ./build/test
 
 # script: script.o pty.o ptyFork.o tty_functions.o
 # 	gcc script.o pty.o ptyFork.o tty_functions.o -o script

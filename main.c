@@ -15,6 +15,7 @@
 #include "ptyFork.h"
 
 #include "stuff.h"
+#include "moreStuff.h"
 
 #define MAX(a, b) ((a) < (b) ? (b) : (a))
 #define MAX_SNAME 1000
@@ -288,7 +289,7 @@ int main(int argc, char **argv) {
       printf("\n\n\n\n\n");
 
       // vtParse2(buf, numRead);
-      vtParse3(buf, numRead, write_char);
+      vtParse3(buf, numRead, &term, &cs, handle_csi);
       for(int x = 0; x < term.rows; x++) {
         for(int y = 0; y < term.cols; y++) {
           if(term.lines[x][y].dirty == 1) {
