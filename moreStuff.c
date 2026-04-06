@@ -23,30 +23,59 @@ void vtParse3(const char *p, int size, Term *term, CS *cs, void (*handle_csi)(CS
       // wc(p+i);
       printf("cursor_x is %u and cursor_y is %u\n", term->cursor_x, term->cursor_y);
       printf("And the current char is %d\n", *(p+i));
+      int x = term->cursor_x;
+      int x_offset = x-term->offset;
+      if(x_offset < 0) {
+        x_offset += term->rows;
+      }
+      int current_row = x_offset;
+      // int current_x = term->cursor_x;
+      int current_x = x_offset;
       if(*(p+i) == 10) {
         printf("THIS IS A NEWLINE!!!!!!!\n");
         // Don't actually print a new line
         // Move our x position down a row.
-        term->cursor_x++;
+        term->cursor_x = (x_offset + 1) % term->rows; // THINK: Is this +1 then % part right?
+        // Clear the current line?
+        for(int i = 0; i < term->cols; i++) {
+          // This is clearing the terminal state row but
+          // not updating the drawing on the window.
+          // Maybe here I can mark the line as dirty, and
+          // then in the main draw loop clear the area then?
+          // For short term, what if I just mark it on the "glyph"
+          // that I currenty have, and then clear the row it's on...
+          term->lines[(x_offset+1)%term->rows]->lineData[i].c = '\0';
+          // Set the NEXT line as dirty so that it gets visually cleared
+          term->lines[(x_offset)%term->rows]->dirty = 1;
+          // term->lines[(x_offset+1)%term->rows][i].dirty = 1;
+        }
+        // if(current_x + 1 >= term->rows) {
+        //   term->offset++;
+        //   term->cursor_x = term->rows-1;
+        // } else {
+        //   term->cursor_x++;
+        // }
         term->cursor_y = 0;
       } else if(*(p+i) == 13) {
         printf("THIS IS A CARRIAGE RETURN!!!!!!!\n");
-        // Don't actually print a new line
-        // Move our x position down a row.
-        // term.cursor_x++;
-        // term.cursor_y = 100;
       } else if(*(p+i) == 9) {
         printf("THIS IS A HORIZONTAL TAB!!!!!!!\n");
       } else {
-        term->lines[term->cursor_x][term->cursor_y] = (Line){
-          .row = term->cursor_x,
+        term->lines[current_x]->lineData[term->cursor_y] = (JGlyph){
+          .row = current_x,
           .col = term->cursor_y,
-          .dirty = 1,
+          // .dirty = 0,
           .c = *(p+i),
         };
         if(term->cursor_y-+ 1 >= term->cols) {
           term->cursor_y = 0;
-          term->cursor_x++;
+          term->cursor_x = (x_offset + 1) % term->rows;
+          // if(current_x + 1 >= term->rows) {
+          //   term->offset++;
+          //   term->cursor_x = term->rows-1;
+          // } else {
+          //   term->cursor_x++;
+          // }
         } else {
           term->cursor_y++;
         }

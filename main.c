@@ -176,11 +176,22 @@ int main(int argc, char **argv) {
 
   printf("masterFd %i\n", masterFd);
 
-  term = (Term){100, 160, 0, 0, 0, 0, 0, 0, 0};
+  term = (Term){5, 160, 0, 0, 0, 0, 0, 0, 0};
+  // How big will each "line" be?
+  // #rows * sizeof(Line*), 
+  // and each Line will be (JGlyph * #cols) + int + int
   term.lines = malloc(sizeof(Line*) * term.rows);
   for(int i = 0; i < term.rows; i++) {
-    term.lines[i] = malloc(sizeof(Line) * term.cols);
+    term.lines[i] = malloc(sizeof(Line));
+    // term.lines[i] = malloc((sizeof(JGlyph) * term.cols) + (2*sizeof(int)));
+    term.lines[i]->dirty = 0;
+    term.lines[i]->row = i;
+    term.lines[i]->lineData = malloc(sizeof(JGlyph) * term.cols);
   }
+  // term.lines = malloc(sizeof(Line*) * term.rows);
+  // for(int i = 0; i < term.rows; i++) {
+  //   term.lines[i] = malloc(sizeof(Line) * term.cols);
+  // }
 
   display = XOpenDisplay(NULL);
   printf("Dispay opened\n");
@@ -228,7 +239,7 @@ int main(int argc, char **argv) {
   GC gc = XCreateGC(display, window, 0, NULL);
   XSetForeground(display, gc, BlackPixel(display, screen));
   XFillRectangle(display, window, gc, 0, 0, 800, 800);
-  XFreeGC(display, gc);
+  // XFreeGC(display, gc);
 
   XMapWindow(display, window);
   XFlush(display);
@@ -289,14 +300,80 @@ int main(int argc, char **argv) {
       printf("\n\n\n\n\n");
 
       vtParse3(buf, numRead, &term, &cs, handle_csi);
+          // XDrawRectangle(display, window, gc,
+          //     50,// x
+          //     100-font->ascent, // y
+          //     200, // width
+          //     font->height  // height
+          //     );
+          // XFlush(display);
+      // XFlush(display);
       for(int x = 0; x < term.rows; x++) {
+        if(term.lines[x]->dirty == 1) {
+          // x is the index into the state array...
+          // But for the actual coordinates with the offset taken into account...
+          // if x = 4 and I want it to be 0...
+          // that's (x + offset) % #rows
+          int realx = (x+term.offset) % term.rows;
+          XY c = coord_TermToWin(realx, 0);
+          // XDrawRectangle(display, window, gc,
+          //     c.x,// x
+          //     c.y-font->ascent, // y
+          //     200, // width
+          //     font->height  // height
+          //     );
+          XClearArea(display, window,
+            c.x,// x
+            c.y-font->ascent, // y
+            2000, // width
+            font->height,  // height
+            0
+          );
+          // term.lines[x]->dirty = 0;
+          // XFlush(display);
+      }
         for(int y = 0; y < term.cols; y++) {
-          if(term.lines[x][y].dirty == 1) {
-            write_char2(&term.lines[x][y]);
-            term.lines[x][y].dirty = 0;
-          }
+          // if(term.lines[x][y].dirty == 1) {
+          // if(term.lines[x][y].c != '\0') {
+            // int x_offset = x - term.offset; // 0 - 1 = -1
+            // if(x_offset < 0) {
+            //   x_offset += term.rows; // -1 + 5 = 4
+            // }
+            /*
+               idx 0: So draw line 0 at index 4 - this sounds correct
+               idx 1: x=1, x_offset = 1-1=0; So draw index 1 at index 0. This also sounds correct...
+
+             */
+            // int x_offset = x + term.offset;
+            // if(x_offset >= term.rows) {
+            //   x_offset -= term.rows;
+            // }
+            // I'm just going to draw lines[1][0]...
+            // which is NOT drawing lines[1][0] AT [0][0]...
+            // I'm using the cursor position to add text into state
+            // but that means they need to change together...
+            // If I write a new line, which is intended for the bottom
+            // of the screen, into [0][0], the cursor position will still
+            // be at like [5][0] or whatever, at the bottom of the screen.
+            // So there's a mismatch here of what I'm using cursor for in
+            // the state and how I'm drawing the cursor...
+            // if(term.lines[x][y].dirty == 1) {
+            write_char2(&term.lines[x]->lineData[y]);
+            // term.lines[x][y].dirty = 0;
         }
       }
+      // for(int x = 0; x < term.rows; x++) {
+      //   for(int y = 0; y < term.cols; y++) {
+      //     int xp = x + term.offset;
+      //     if(xp >= term.rows) {
+      //       xp = xp - term.rows;
+      //     }
+      //     if(term.lines[xp][y].dirty == 1) {
+      //       write_char2(&term.lines[xp][y]);
+      //       term.lines[xp][y].dirty = 0;
+      //     }
+      //   }
+      // }
     }
 
     while (XPending(display)) {
@@ -425,3 +502,29 @@ int main(int argc, char **argv) {
 // (Line)  (row = 50, col = 107, dirty = 1, c = ' ')
 // (lldb) p term.lines[0][8]
 // (Line)  (row = 0, col = 0, dirty = 0, c = '\0')
+//
+// break set --file main.c --line 298 -c '(term.lines[xp][y].dirty == 1)'
+// break set --file main.c --line 296 -c '(term.offset == 1)'
+
+
+
+/*
+   const Lines = [
+      {
+        dirty = 1,
+        data: {
+          row: 0,
+          col: 0,
+          c: "j"
+        }
+      },
+      {
+        dirty = 0,
+        data: {
+          row: 0,
+          col: 1,
+          c: "e"
+        }
+      }
+   ]
+ * */

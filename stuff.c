@@ -20,7 +20,64 @@ extern XftDraw *draw;
 extern XftColor xft_font_color;
 extern XftColor xft_bg_color;
 
+void printTermState(Term *term) {
+  printf("========\n");
+  printf("cursor_x: %i\n", term->cursor_x);
+  printf("cursor_y: %i\n", term->cursor_y);
+  printf("offset: %i\n", term->offset);
+  for(int i = 0; i < term->rows; i++) {
+    printf("[");
+    for(int j = 0; j < term->cols; j++) {
+      // if(term->lines[i][j].c == '\0') break;
+      if(term->lines[i]->lineData[j].c == '\0') break;
+      printf("%c, ", term->lines[i]->lineData[j].c);
+    }
+    printf("]");
+    if(i == (term->cursor_x + term->offset) % term->rows) {
+      printf(" <----- current");
+    }
+    printf("\n");
+  }
+  printf("========\n");
+}
+
+void printGlyph(Line *line) {
+// {
+//   int row;
+//   int col;
+//   int dirty;
+//   char c;
+//   // glyph
+// }
+  // printf("{row:%i, col:%i, dirty:%i, c:%c}", line->row, line->col, line->dirty, line->c);
+  // printf("{row:%i, col:%i, c:%c}", line->row, line->col, line->c);
+}
+
+void printTermState2(Term *term) {
+  printf("========\n");
+  printf("cursor_x: %i\n", term->cursor_x);
+  printf("cursor_y: %i\n", term->cursor_y);
+  printf("offset: %i\n", term->offset);
+  for(int i = 0; i < term->rows; i++) {
+    printf("[");
+    for(int j = 0; j < term->cols; j++) {
+      if(term->lines[i]->lineData[j].c == '\0') break;
+      // printGlyph(&term->lines[i][j]);
+    }
+    printf("]");
+    if(i == (term->cursor_x + term->offset) % term->rows) {
+      printf(" <----- current");
+    }
+    printf("\n");
+  }
+  printf("========\n");
+}
+
 XY coord_TermToWin(int x, int y) {
+  int x_offset = x - term.offset;
+  if(x_offset < 0) {
+    x_offset += term.rows;
+  }
   int xp = MARGIN_LEFT + (y)*font->max_advance_width;
   int yp = MARGIN_TOP + ((x)*(font->ascent * ASCENT_MULT));
   return (XY){xp, yp};
@@ -167,8 +224,9 @@ void write_char(const char *p) {
   //
 }
 
-void write_char2(Line *line) {
-  char *p = &line->c;
+void write_char2(JGlyph *gly) {
+  if(gly->c == '\0') return;
+  char *p = &gly->c;
   XKeyEvent *xke = &evt.xkey;
   KeySym keysym = NoSymbol;
   char buf[64];
@@ -194,7 +252,12 @@ void write_char2(Line *line) {
     r.width = cell_width;
 
     eraseCursor(font, &xft_bg_color, draw);
-    XY c = coord_TermToWin(line->row, line->col);
+    int x_offset = gly->row - term.offset;
+    if(x_offset < 0) {
+      x_offset += term.rows;
+    }
+    // XY c = coord_TermToWin(gly->row, line->col);
+    XY c = coord_TermToWin(x_offset, gly->col);
 
     XftDrawRect(draw, &xft_bg_color, c.x, c.y - font->ascent, cell_width, cell_height); // width and height? 
     XftDrawSetClipRectangles(draw, c.x, c.y - font->ascent, &r, 1); 
@@ -210,4 +273,6 @@ void write_char2(Line *line) {
     XftDrawSetClip(draw, 0);
 
     drawCursor(font, &xft_font_color, draw);
+    // XFlush(display);
+    printTermState(&term);
 }

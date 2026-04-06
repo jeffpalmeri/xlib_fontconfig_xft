@@ -10,12 +10,18 @@ typedef struct CS {
   char mode[2];
 } CS;
 
-typedef struct Line {
+typedef struct JGlyph {
   int row;
   int col;
-  int dirty;
+  // int dirty;
   char c;
   // glyph
+} JGlyph;
+
+typedef struct Line {
+  int dirty;
+  int row;
+  JGlyph* lineData;
 } Line;
 
 typedef struct Term {
@@ -27,6 +33,7 @@ typedef struct Term {
   int esc;
   int old_cursor_x;
   int old_cursor_y;
+  int offset;
   Line **lines;
 } Term;
 

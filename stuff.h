@@ -10,7 +10,7 @@
 void vtParse(char b);
 void vtParse2(const char *p, int size);
 void write_char(const char *p);
-void write_char2(Line *line);
+void write_char2(JGlyph *glyph);
 
 void drawCursor(XftFont *font, XftColor *color, XftDraw *draw);
 void eraseCursor(XftFont *font, XftColor *color, XftDraw *draw);
