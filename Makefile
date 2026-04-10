@@ -1,10 +1,12 @@
+C_FLAGS_EXTRA ?=
+
 main: main.o pty.o ptyFork.o stuff.o moreStuff.o
 	# gcc main.o -o main -lX11 -lfontconfig -lXft -lfreetype
 	gcc -g -O0 main.o pty.o ptyFork.o stuff.o moreStuff.o -o build/main `pkg-config --libs x11 xft fontconfig`
 
 main.o: main.c
 	# gcc -c main.c -o main.o `pkg-config --cflags freetype2`
-	gcc -c -g -O0 main.c -o main.o `pkg-config --cflags x11 xft fontconfig`
+	gcc -c -g -O0 main.c $(C_FLAGS_EXTRA) -o main.o `pkg-config --cflags x11 xft fontconfig`
 
 pty.o: pty.c
 	gcc -c pty.c -o pty.o
@@ -17,10 +19,10 @@ clean:
 	rm -rf main .cache *.o
 
 stuff.o: stuff.c
-	gcc -c -g -O0 stuff.c -o stuff.o `pkg-config --cflags x11 xft fontconfig`
+	gcc -c -g -O0 stuff.c $(C_FLAGS_EXTRA) -o stuff.o `pkg-config --cflags x11 xft fontconfig`
 
 moreStuff.o: moreStuff.c
-	gcc -c -g -O0 moreStuff.c -o moreStuff.o `pkg-config --cflags x11 xft fontconfig`
+	gcc -c -g -O0 moreStuff.c $(C_FLAGS_EXTRA) -o moreStuff.o `pkg-config --cflags x11 xft fontconfig`
 
 test.o: test.c
 	gcc -c -g -O0 test.c -o test.o `pkg-config --libs x11 xft fontconfig --cflags x11 xft fontconfig`

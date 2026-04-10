@@ -1,4 +1,5 @@
 #include <X11/extensions/Xrender.h>
+
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -14,8 +15,9 @@
 #include "pty.h"
 #include "ptyFork.h"
 
-#include "stuff.h"
 #include "moreStuff.h"
+#include "structs.h"
+#include "stuff.h"
 
 #define MAX(a, b) ((a) < (b) ? (b) : (a))
 #define MAX_SNAME 1000
@@ -32,23 +34,6 @@ void die(const char *errString, ...) {
 
   exit(1);
 }
-
-// enum terminal_mode {
-//   csi
-// };
-//
-// enum escape_state {
-//   ESC_CSI   = 1 << 0,
-//   ESC_START = 1 << 1,
-// };
-//
-// typedef struct {
-//   int row;
-//   int col;
-//   int cursor_x;
-//   int cursor_y;
-//   int mode;
-// } Term;
 
 Display *display;
 XftFont *font;
@@ -87,32 +72,32 @@ FcPattern *loadFont() {
   double pixelsize;
 
   if (FcPatternGetString(pattern, FC_FAMILY, 0, &family) == FcResultMatch) {
-    printf("Font family: %s\n", family);
+    de_printf("Font family: %s\n", family);
   }
 
   if (FcPatternGetString(pattern, FC_FILE, 0, &file) == FcResultMatch) {
-    printf("Font file: %s\n", file);
+    de_printf("Font file: %s\n", file);
   } else {
-    printf("No file?\n");
+    de_printf("No file?\n");
   }
 
   if (FcPatternGetDouble(pattern, FC_PIXEL_SIZE, 0, &pixelsize) ==
       FcResultMatch) {
-    printf("Pixel size: %.1f\n", pixelsize);
+    de_printf("Pixel size: %.1f\n", pixelsize);
   } else {
-    printf("No size?\n");
+    de_printf("No size?\n");
   }
 
   FcPatternAddDouble(pattern, FC_PIXEL_SIZE, 12);
   FcPatternAddDouble(pattern, FC_SIZE, 12);
 
   if (FcPatternGetDouble(pattern, FC_SIZE, 0, &size) == FcResultMatch) {
-    printf("Font size: %.1f\n", size);
+    de_printf("Font size: %.1f\n", size);
   } else {
-    printf("No size?\n");
+    de_printf("No size?\n");
   }
 
-  printf("*** Doing substitutes and matching now ***\n");
+  de_printf("*** Doing substitutes and matching now ***\n");
 
   FcConfigSubstitute(NULL, pattern, FcMatchPattern);
   FcDefaultSubstitute(pattern);
@@ -123,16 +108,16 @@ FcPattern *loadFont() {
     fprintf(stderr, "Font match failed: %d\n", result);
   }
 
-  printf("Font match seems to have succeeded\n");
-  printf("Trying file again now\n");
+  de_printf("Font match seems to have succeeded\n");
+  de_printf("Trying file again now\n");
 
   if (FcPatternGetString(match, FC_FILE, 0, &file) == FcResultMatch) {
-    printf("Font file: %s\n", file);
+    de_printf("Font file: %s\n", file);
   } else {
     fprintf(stderr, "No file, but should have one\n");
   }
 
-  printf("*** Moving on to Xft now ***\n");
+  de_printf("*** Moving on to Xft now ***\n");
 
   return match;
 }
@@ -142,10 +127,10 @@ XftFont *openXft(Display *display, FcPattern *match) {
   if (!font)
     die("XftFontOpenPattern failed\n");
 
-  printf("Xft font opened successfully\n");
+  de_printf("Xft font opened successfully\n");
 
-  printf("Loaded font: ascent=%d descent=%d max_advance=%d\n", font->ascent,
-         font->descent, font->max_advance_width);
+  de_printf("Loaded font: ascent=%d descent=%d max_advance=%d\n", font->ascent,
+            font->descent, font->max_advance_width);
 
   return font;
 }
@@ -174,205 +159,144 @@ int main(int argc, char **argv) {
     die("execlp"); // If we get here, something went wrong
   }
 
-  printf("masterFd %i\n", masterFd);
+  de_printf("masterFd %i\n", masterFd);
 
-term = (Term){50, 160, 0, 0, 0, 0, 0, 0, 0, 0};
-// How big will each "line" be?
-// #rows * sizeof(Line*), 
-// and each Line will be (JGlyph * #cols) + int + int
-term.lines = malloc(sizeof(Line*) * term.rows);
-for(int i = 0; i < term.rows; i++) {
-  term.lines[i] = malloc(sizeof(Line));
-  // term.lines[i] = malloc((sizeof(JGlyph) * term.cols) + (2*sizeof(int)));
-  term.lines[i]->dirty = 0;
-  term.lines[i]->row = i;
-  term.lines[i]->lineData = malloc(sizeof(JGlyph) * term.cols);
-}
-// term.lines = malloc(sizeof(Line*) * term.rows);
-// for(int i = 0; i < term.rows; i++) {
-//   term.lines[i] = malloc(sizeof(Line) * term.cols);
-// }
-
-display = XOpenDisplay(NULL);
-printf("Dispay opened\n");
-
-int screen = XDefaultScreen(display);
-Visual *visual = XDefaultVisual(display, screen);
-
-Window parent = XRootWindow(display, screen);
-
-XColor grey;
-Colormap colormap = DefaultColormap(display, screen);
-XParseColor(display, colormap, "#808080", &grey);
-XAllocColor(display, colormap, &grey);
-
-XSetWindowAttributes attrs = {0};
-
-attrs.background_pixel = grey.pixel;
-attrs.colormap = XCreateColormap(display, parent, visual, AllocNone);
-attrs.event_mask = ExposureMask | KeyPressMask | StructureNotifyMask;
-
-Window window = XCreateWindow(
-    display, parent, 0, 0, width, height, 0, XDefaultDepth(display, screen),
-    InputOutput, visual, CWBackPixel | CWColormap | CWEventMask, &attrs);
-
-if (!window)
-  die("XCreateWindow failed\n");
-
-printf("Complete, window id is %lu\n", window);
-
-FcPattern *match = loadFont();
-XftFont *font = openXft(display, match);
-draw = XftDrawCreate(display, window, visual, colormap);
-
-XRenderColor xr = {0x0000, 0x0000, 0x0000, 0xffff};
-XftColorAllocValue(display, visual, colormap, &xr, &xft_font_color);
-
-XRenderColor bgxr = {grey.red, grey.green, grey.blue, 0xffff};
-XftColorAllocValue(display, visual, colormap, &bgxr, &xft_bg_color);
-
-printf("xft colors allocated\n");
-
-printf("\nStarting rendering next\n");
-
-XMapWindow(display, window);
-GC gc = XCreateGC(display, window, 0, NULL);
-XSetForeground(display, gc, BlackPixel(display, screen));
-XFillRectangle(display, window, gc, 0, 0, 800, 800);
-// XFreeGC(display, gc);
-
-XMapWindow(display, window);
-XFlush(display);
-
-do {
-  XNextEvent(display, &evt);
-} while (evt.type != MapNotify);
-printf("after the do while loop\n");
-
-// XRectangle rab;
-// rab.x = 0;
-// rab.y = 0;
-// rab.height = font->height;
-// rab.width = font->max_advance_width;
-// XftDrawRect(draw, &xft_font_color, 
-//     1000,
-//     1000,
-//     rab.width, rab.height);
-
-// XRectangle rab;
-// rab.x = 0;
-// rab.y = 0;
-// rab.height = font->height;
-// rab.width = font->max_advance_width;
-// XftDrawRect(draw, &xft_font_color, 
-//     50, 100,
-//     // term.cursor_x,
-//     // term.cursor_y - font->ascent, 
-//     rab.width, rab.height);
-
-int xfd = XConnectionNumber(display);
-char buf[256];
-// while(XPending(display)) {
-while (1) {
-  fd_set rfd;
-  FD_ZERO(&rfd);
-  FD_SET(masterFd, &rfd);
-  FD_SET(xfd, &rfd);
-  //   struct timespec seltv, *tv;
-  // tv = timeout >= 0 ? &seltv : NULL;
-
-  if (pselect(MAX(xfd, masterFd) + 1, &rfd, NULL, NULL, NULL, NULL) < 0) {
-    if (errno == EINTR)
-      continue;
-    die("select failed: %s\n", strerror(errno));
+  term = (Term){40, 160, 0, 0, 0, 0, 0, 0, 0, 0};
+  // How big will each "line" be?
+  // #rows * sizeof(Line*),
+  // and each Line will be (JGlyph * #cols) + int + int
+  term.lines = malloc(sizeof(Line *) * term.rows);
+  for (int i = 0; i < term.rows; i++) {
+    term.lines[i] = malloc(sizeof(Line));
+    // term.lines[i] = malloc((sizeof(JGlyph) * term.cols) + (2*sizeof(int)));
+    term.lines[i]->dirty = 1;
+    term.lines[i]->row = i;
+    term.lines[i]->lineData = malloc(sizeof(JGlyph) * term.cols);
   }
+  // term.lines = malloc(sizeof(Line*) * term.rows);
+  // for(int i = 0; i < term.rows; i++) {
+  //   term.lines[i] = malloc(sizeof(Line) * term.cols);
+  // }
 
-  if (FD_ISSET(masterFd, &rfd)) {
-    ssize_t numRead = read(masterFd, buf, 256);
-    printf("**** numRead from masterFd: %zd\n", numRead);
-    // printf("And what the heck did I actually read?: %s\n", buf);
+  display = XOpenDisplay(NULL);
+  de_printf("Dispay opened\n");
 
-    for (ssize_t i = 0; i < numRead; i++) {
-      fprintf(stderr, "%02x ", (unsigned char)buf[i]);
+  int screen = XDefaultScreen(display);
+  Visual *visual = XDefaultVisual(display, screen);
+
+  Window parent = XRootWindow(display, screen);
+
+  XColor grey;
+  Colormap colormap = DefaultColormap(display, screen);
+  XParseColor(display, colormap, "#808080", &grey);
+  XAllocColor(display, colormap, &grey);
+
+  XSetWindowAttributes attrs = {0};
+
+  attrs.background_pixel = grey.pixel;
+  attrs.colormap = XCreateColormap(display, parent, visual, AllocNone);
+  attrs.event_mask = ExposureMask | KeyPressMask | StructureNotifyMask;
+
+  Window window = XCreateWindow(
+      display, parent, 0, 0, width, height, 0, XDefaultDepth(display, screen),
+      InputOutput, visual, CWBackPixel | CWColormap | CWEventMask, &attrs);
+
+  if (!window)
+    die("XCreateWindow failed\n");
+
+  de_printf("Complete, window id is %lu\n", window);
+
+  FcPattern *match = loadFont();
+  XftFont *font = openXft(display, match);
+  draw = XftDrawCreate(display, window, visual, colormap);
+
+  XRenderColor xr = {0x0000, 0x0000, 0x0000, 0xffff};
+  XftColorAllocValue(display, visual, colormap, &xr, &xft_font_color);
+
+  XRenderColor bgxr = {grey.red, grey.green, grey.blue, 0xffff};
+  XftColorAllocValue(display, visual, colormap, &bgxr, &xft_bg_color);
+
+  de_printf("xft colors allocated\n");
+
+  de_printf("\nStarting rendering next\n");
+
+  XMapWindow(display, window);
+  GC gc = XCreateGC(display, window, 0, NULL);
+  XSetForeground(display, gc, BlackPixel(display, screen));
+  XFillRectangle(display, window, gc, 0, 0, 800, 800);
+  // XFreeGC(display, gc);
+
+  XMapWindow(display, window);
+  XFlush(display);
+
+  do {
+    XNextEvent(display, &evt);
+  } while (evt.type != MapNotify);
+  de_printf("after the do while loop\n");
+
+  int xfd = XConnectionNumber(display);
+  char buf[256];
+  while (1) {
+    fd_set rfd;
+    FD_ZERO(&rfd);
+    FD_SET(masterFd, &rfd);
+    FD_SET(xfd, &rfd);
+    //   struct timespec seltv, *tv;
+    // tv = timeout >= 0 ? &seltv : NULL;
+
+    if (pselect(MAX(xfd, masterFd) + 1, &rfd, NULL, NULL, NULL, NULL) < 0) {
+      if (errno == EINTR)
+        continue;
+      die("select failed: %s\n", strerror(errno));
     }
-    printf("\n");
-    printf("----------end------------\n");
-    printf("\n\n\n\n\n");
 
-    vtParse3(buf, numRead, &term, &cs, handle_csi);
-    // XClearWindow(display, window);
-    // XFlush(display);
-    for(int x = 0; x < term.rows; x++) {
-      if(term.lines[x]->dirty == 1) {
-        XY c = coord_TermToWin(x, 0);
-        // XDrawRectangle(display, window, gc,
-        //     c.x,// x
-        //     c.y-font->ascent, // y
-        //     200, // width
-        //     font->height  // height
-        //     );
-        XClearArea(display, window,
-          c.x,              // x
-          c.y-font->ascent, // y
-          2000,             // width
-          font->height,     // height
-          0
-        );
-        // term.lines[x]->dirty = 0;
-        // XFlush(display);
-    }
-        // for(int y = 0; y < term.cols; y++) {
-        int y = 0;
-        while(y < term.cols && term.lines[x]->lineData[y].c != '\0') {
-          // if(term.lines[x][y].dirty == 1) {
-          // if(term.lines[x][y].c != '\0') {
-            // int x_offset = x - term.offset; // 0 - 1 = -1
-            // if(x_offset < 0) {
-            //   x_offset += term.rows; // -1 + 5 = 4
-            // }
-            /*
-               idx 0: So draw line 0 at index 4 - this sounds correct
-               idx 1: x=1, x_offset = 1-1=0; So draw index 1 at index 0. This also sounds correct...
+    if (FD_ISSET(masterFd, &rfd)) {
+      ssize_t numRead = read(masterFd, buf, 256);
+      // de_printf("**** numRead from masterFd: %zd\n", numRead);
+      // de_printf("And what the heck did I actually read?: %s\n", buf);
 
-             */
-            // int x_offset = x + term.offset;
-            // if(x_offset >= term.rows) {
-            //   x_offset -= term.rows;
-            // }
-            // I'm just going to draw lines[1][0]...
-            // which is NOT drawing lines[1][0] AT [0][0]...
-            // I'm using the cursor position to add text into state
-            // but that means they need to change together...
-            // If I write a new line, which is intended for the bottom
-            // of the screen, into [0][0], the cursor position will still
-            // be at like [5][0] or whatever, at the bottom of the screen.
-            // So there's a mismatch here of what I'm using cursor for in
-            // the state and how I'm drawing the cursor...
-            // if(term.lines[x][y].dirty == 1) {
+      // for (ssize_t i = 0; i < numRead; i++) {
+      //   fprintf(stderr, "%02x ", (unsigned char)buf[i]);
+      // }
+      // de_printf("\n");
+      // de_printf("----------end------------\n");
+      // de_printf("\n\n\n\n\n");
+
+      vtParse3(buf, numRead, &term, &cs, handle_csi);
+      // XClearWindow(display, window);
+      // XFlush(display);
+      eraseCursor(font, &xft_bg_color, draw);
+      for (int x = 0; x < term.rows; x++) {
+        if (term.lines[x]->dirty == 1) {
+          // The idea here is the XClearArea is not needed if writing
+          // on the same line as before. I just tried this and it seems
+          // to work, but I should think more about if it's solid logic.
+          if (term.old_cursor_x != term.cursor_x) {
+            XY c = coord_TermToWin(x, 0);
+            XClearArea(display, window,
+                       c.x,                // x
+                       c.y - font->ascent, // y
+                       2000,               // width
+                       font->height,       // height
+                       0);
+          }
+          int y = 0;
+          while (y < term.cols && term.lines[x]->lineData[y].c != '\0') {
             write_char2(&term.lines[x]->lineData[y]);
             y++;
-            // XFlush(display);
-            // term.lines[x][y].dirty = 0;
+          }
+          // XFlush(display);
+          // if(x != term.cursor_x) {
+          term.lines[x]->dirty = 0;
         }
       }
-      // for(int x = 0; x < term.rows; x++) {
-      //   for(int y = 0; y < term.cols; y++) {
-      //     int xp = x + term.offset;
-      //     if(xp >= term.rows) {
-      //       xp = xp - term.rows;
-      //     }
-      //     if(term.lines[xp][y].dirty == 1) {
-      //       write_char2(&term.lines[xp][y]);
-      //       term.lines[xp][y].dirty = 0;
-      //     }
-      //   }
-      // }
+      drawCursor(font, &xft_font_color, draw);
     }
 
     while (XPending(display)) {
       XNextEvent(display, &evt);
-      // printf("---------start-------------\n");
-      // printf("Event type is %d\n", evt.type);
+      // de_printf("---------start-------------\n");
+      // de_printf("Event type is %d\n", evt.type);
 
       if (evt.type == KeyPress) {
         XKeyEvent *xke = &evt.xkey;
@@ -381,21 +305,21 @@ while (1) {
         int len;
 
         len = XLookupString(xke, buf, sizeof buf, &keysym, NULL);
-        printf("==========\n");
-        printf("KeyPress len is: %d\n", len);
-        printf("KeyPress buf is: %s\n", buf);
-        printf("KeyPress buf in hex: ");
-        for (int i = 0; i < len; i++) {
-          printf("0x%02x ", (unsigned char)buf[i]);
-        }
-        printf("\n");
-        printf("KeySym is: %lu\n", keysym);
-        printf("KeySym to string is: %s\n", XKeysymToString(keysym));
-        printf("==========\n\n");
-
-        if (xke->state & Mod1Mask) {
-          printf("Typed with ALT held down and len is %d\n", len);
-        }
+        // de_printf("==========\n");
+        // de_printf("KeyPress len is: %d\n", len);
+        // de_printf("KeyPress buf is: %s\n", buf);
+        // de_printf("KeyPress buf in hex: ");
+        // for (int i = 0; i < len; i++) {
+        //   de_printf("0x%02x ", (unsigned char)buf[i]);
+        // }
+        // de_printf("\n");
+        // de_printf("KeySym is: %lu\n", keysym);
+        // de_printf("KeySym to string is: %s\n", XKeysymToString(keysym));
+        // de_printf("==========\n\n");
+        //
+        // if (xke->state & Mod1Mask) {
+        //   de_printf("Typed with ALT held down and len is %d\n", len);
+        // }
 
         /*
         // if(keysym == 65293) { // return
@@ -418,7 +342,7 @@ while (1) {
 
         if (keysym == 65288) { // backspace
                                //
-          printf("Backspace!\n");
+          de_printf("Backspace!\n");
           // Delete the previous cursor
           drawCursor(font, &xft_bg_color, draw);
 
@@ -451,12 +375,12 @@ while (1) {
           // this?
           // buf[len] = '\0';
           // unsigned int codepoint = (unsigned char)buf[0];
-          // printf("Ok getting serious, the letter typed is %s\n", buf);
+          // de_printf("Ok getting serious, the letter typed is %s\n", buf);
           //
           // FT_UInt glyph = XftCharIndex(display, font, codepoint);
-          // printf("XftCharIndex() seems to be called successfully %u\n", glyph);
-          // int cell_width = font->max_advance_width;
-          // int cell_height = font->height;
+          // de_printf("XftCharIndex() seems to be called successfully %u\n",
+          // glyph); int cell_width = font->max_advance_width; int cell_height =
+          // font->height;
           //
           // XRectangle r;
           // r.x = 0;
@@ -475,7 +399,6 @@ while (1) {
 
   return 0;
 }
-
 
 // (lldb) p term.lines[0][0]
 // (Line)  (row = 50, col = 100, dirty = 1, c = 's')
@@ -498,8 +421,6 @@ while (1) {
 //
 // break set --file main.c --line 298 -c '(term.lines[xp][y].dirty == 1)'
 // break set --file main.c --line 296 -c '(term.offset == 1)'
-
-
 
 /*
    const Lines = [

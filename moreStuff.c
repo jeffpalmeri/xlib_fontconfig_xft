@@ -1,15 +1,23 @@
 // Does not require any extern stuff to work
 
+#include "moreStuff.h"
+#include "structs.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "structs.h"
-#include "moreStuff.h"
+
+int calc_top(Term *term) {
+  if (term->offset < term->rows) {
+    return 0;
+  }
+  return (term->cursor_x + 1) % term->rows;
+}
 
 // function pointer is not needed any more
 // void vtParse3(const char *p, int size, void (*wc)(const char*)) {
 // void vtParse3(const char *p, int size, Term *term, CS *cs) {
-void vtParse3(const char *p, int size, Term *term, CS *cs, void (*handle_csi)(CS *cs)) {
+void vtParse3(const char *p, int size, Term *term, CS *cs,
+              void (*handle_csi)(CS *cs)) {
   for (int i = 0; i < size; i++) {
     char b = p[i];
     if (term->esc == 0) {
@@ -18,50 +26,49 @@ void vtParse3(const char *p, int size, Term *term, CS *cs, void (*handle_csi)(CS
         continue;
       }
 
-      // write normal char here?
-      // write_char(p+i);
-      // wc(p+i);
-      printf("cursor_x is %u and cursor_y is %u\n", term->cursor_x, term->cursor_y);
-      printf("And the current char is %d\n", *(p+i));
-      int x_offset = (term->cursor_x+term->rows)%term->rows;
-      if(*(p+i) == 10) {
-        printf("THIS IS A NEWLINE!!!!!!!\n");
+      // de_printf("cursor_x is %u and cursor_y is %u\n", term->cursor_x,
+      // term->cursor_y); de_printf("And the current char is %d\n", *(p+i));
+      int cur_top = calc_top(term);
+      int x = term->cursor_x;
+      term->lines[x]->dirty = 1;
+      if (*(p + i) == 10) {
+        // de_printf("THIS IS A NEWLINE!!!!!!!\n");
         // Don't actually print a new line
         // Move our x position down a row.
-        int new_cursor_x = (x_offset + 1) % term->rows;
-        term->cursor_x = (x_offset + 1) % term->rows; // THINK: Is this +1 then % part right?
-        // Clear the current line?
-        for(int i = 0; i < term->cols; i++) {
-          // This is clearing the terminal state row but
-          // not updating the drawing on the window.
-          // Maybe here I can mark the line as dirty, and
-          // then in the main draw loop clear the area then?
-          // For short term, what if I just mark it on the "glyph"
-          // that I currenty have, and then clear the row it's on...
-          term->lines[(x_offset+1)%term->rows]->lineData[i].c = '\0';
+        term->cursor_x = (x + 1) % term->rows;
+        for (int i = 0; i < term->cols; i++) {
+          // Clear the terminal state row
+          term->lines[(x + 1) % term->rows]->lineData[i].c = '\0';
           // Set the NEXT line as dirty so that it gets visually cleared
-          term->lines[(x_offset)%term->rows]->dirty = 1;
+          // term->lines[(x_offset)%term->rows]->dirty = 1;
           // term->lines[(x_offset+1)%term->rows][i].dirty = 1;
         }
+        term->lines[(x + 1) % term->rows]->dirty = 1;
         term->offset++;
         term->cursor_y = 0;
-      } else if(*(p+i) == 13) {
-        printf("THIS IS A CARRIAGE RETURN!!!!!!!\n");
-      } else if(*(p+i) == 9) {
-        printf("THIS IS A HORIZONTAL TAB!!!!!!!\n");
+      } else if (*(p + i) == 13) {
+        // de_printf("THIS IS A CARRIAGE RETURN!!!!!!!\n");
+      } else if (*(p + i) == 9) {
+        // de_printf("THIS IS A HORIZONTAL TAB!!!!!!!\n");
       } else {
-        term->lines[x_offset]->lineData[term->cursor_y] = (JGlyph){
-          .row = x_offset,
-          .col = term->cursor_y,
-          // .dirty = 0,
-          .c = *(p+i),
+        term->lines[x]->lineData[term->cursor_y] = (JGlyph){
+            .row = x,
+            .col = term->cursor_y,
+            .c = *(p + i),
         };
-        if(term->cursor_y-+ 1 >= term->cols) {
+        if (term->cursor_y + 1 >= term->cols) {
           term->cursor_y = 0;
-          int new_cursor_x = (x_offset + 1) % term->rows;
-          term->cursor_x = (x_offset + 1) % term->rows;
+          term->cursor_x = (x + 1) % term->rows;
+          term->lines[(x + 1) % term->rows]->dirty = 1;
+          term->offset++;
         } else {
           term->cursor_y++;
+        }
+      }
+      int new_top = calc_top(term);
+      if (cur_top != new_top) {
+        for (int i = 0; i < term->rows; i++) {
+          term->lines[i]->dirty = 1;
         }
       }
       continue;
@@ -77,14 +84,14 @@ void vtParse3(const char *p, int size, Term *term, CS *cs, void (*handle_csi)(CS
       if (csi_ending_char(b)) { // 64-126
         term->esc = 0;
         parse_csi(cs);
-        printf("PRINTING CS!!\n");
+        de_printf("PRINTING CS!!\n");
         printCS(cs);
         handle_csi(cs);
       }
     }
   }
   // cs.buf[cs.len] = '\0';
-  printf("DONEZOOOOOOO\n");
+  // de_printf("DONEZOOOOOOO\n");
 }
 
 int csi_ending_char(char b) { return b > 64 && b < 126; }
@@ -104,20 +111,19 @@ void handle_csi(CS *cs) {
 }
 
 void printCS(CS *cs) {
-  printf("CS {\n");
-  printf("  buf: %s\n", cs->buf);
-  printf("  priv: %d\n", cs->priv);
-  printf("  len: %d\n", cs->len);
-  printf("  narg: %d\n", cs->narg);
-  printf("  mode: %s\n", cs->mode);
-  printf("  args: {\n");
+  de_printf("CS {\n");
+  de_printf("  buf: %s\n", cs->buf);
+  de_printf("  priv: %d\n", cs->priv);
+  de_printf("  len: %d\n", cs->len);
+  de_printf("  narg: %d\n", cs->narg);
+  de_printf("  mode: %s\n", cs->mode);
+  de_printf("  args: {\n");
   for (int i = 0; i < cs->narg; i++) {
-    printf("    [%d]: %d\n", i, cs->arg[i]);
+    de_printf("    [%d]: %d\n", i, cs->arg[i]);
   }
-  printf("  }\n");
-  printf("}\n");
+  de_printf("  }\n");
+  de_printf("}\n");
 }
-
 
 void parse_csi(CS *cs) {
   char sep = ';';
@@ -166,5 +172,5 @@ void parse_csi(CS *cs) {
 
   cs->mode[0] = *p;
   cs->mode[1] = '\0'; // Can there be a second? st has a check for it. I can add
-                     // that later if needed
+                      // that later if needed
 }

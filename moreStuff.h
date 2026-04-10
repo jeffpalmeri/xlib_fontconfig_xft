@@ -9,4 +9,6 @@ void printCS(CS *cs);
 void handle_csi(CS *cs);
 void vtParse3(const char *p, int size, Term *term, CS *cs, void (*handle_csi)(CS *cs));
 
+int calc_top(Term *term);
+
 #endif
