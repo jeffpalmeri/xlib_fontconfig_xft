@@ -13,10 +13,7 @@ int calc_top(Term *term) {
   return (term->cursor_x + 1) % term->rows;
 }
 
-// function pointer is not needed any more
-// void vtParse3(const char *p, int size, void (*wc)(const char*)) {
-// void vtParse3(const char *p, int size, Term *term, CS *cs) {
-void vtParse3(const char *p, int size, Term *term, CS *cs,
+void vtParse(const char *p, int size, Term *term, CS *cs,
               void (*handle_csi)(CS *cs)) {
   for (int i = 0; i < size; i++) {
     char b = p[i];
@@ -26,8 +23,6 @@ void vtParse3(const char *p, int size, Term *term, CS *cs,
         continue;
       }
 
-      // de_printf("cursor_x is %u and cursor_y is %u\n", term->cursor_x,
-      // term->cursor_y); de_printf("And the current char is %d\n", *(p+i));
       int cur_top = calc_top(term);
       int x = term->cursor_x;
       term->lines[x]->dirty = 1;
@@ -40,8 +35,6 @@ void vtParse3(const char *p, int size, Term *term, CS *cs,
           // Clear the terminal state row
           term->lines[(x + 1) % term->rows]->lineData[i].c = '\0';
           // Set the NEXT line as dirty so that it gets visually cleared
-          // term->lines[(x_offset)%term->rows]->dirty = 1;
-          // term->lines[(x_offset+1)%term->rows][i].dirty = 1;
         }
         term->lines[(x + 1) % term->rows]->dirty = 1;
         term->offset++;

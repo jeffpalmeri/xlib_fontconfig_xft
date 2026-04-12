@@ -1,8 +1,8 @@
 C_FLAGS_EXTRA ?=
 
-main: main.o pty.o ptyFork.o stuff.o moreStuff.o
+main: main.o pty.o ptyFork.o stuff.o moreStuff.o EventHandlers/KeyPress.o
 	# gcc main.o -o main -lX11 -lfontconfig -lXft -lfreetype
-	gcc -g -O0 main.o pty.o ptyFork.o stuff.o moreStuff.o -o build/main `pkg-config --libs x11 xft fontconfig`
+	gcc -g -O0 main.o pty.o ptyFork.o stuff.o moreStuff.o EventHandlers/KeyPress.o -o build/main `pkg-config --libs x11 xft fontconfig`
 
 main.o: main.c
 	# gcc -c main.c -o main.o `pkg-config --cflags freetype2`
@@ -26,6 +26,9 @@ moreStuff.o: moreStuff.c
 
 test.o: test.c
 	gcc -c -g -O0 test.c -o test.o `pkg-config --libs x11 xft fontconfig --cflags x11 xft fontconfig`
+
+EventHandlers/KeyPress.o: EventHandlers/KeyPress.c
+	gcc -c -g -O0 EventHandlers/KeyPress.c $(C_FLAGS_EXTRA) -o EventHandlers/KeyPress.o `pkg-config --cflags x11`
 
 .PHONY: test
 test: test.o moreStuff.o

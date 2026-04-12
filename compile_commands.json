@@ -70,5 +70,19 @@
     ],
     "directory": "/home/jeff/personal/xlib-experiments",
     "output": "moreStuff.o"
+  },
+  {
+    "file": "EventHandlers/KeyPress.c",
+    "arguments": [
+      "gcc",
+      "-c",
+      "-g",
+      "-O0",
+      "EventHandlers/KeyPress.c",
+      "-o",
+      "EventHandlers/KeyPress.o"
+    ],
+    "directory": "/home/jeff/personal/xlib-experiments",
+    "output": "EventHandlers/KeyPress.o"
   }
 ]

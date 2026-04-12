@@ -97,11 +97,13 @@ void TestCase(const char *bytes, int num_bytes, CS *expectCs) {
   memset(&cs, 0, sizeof(cs));
   memset(&cs.buf, 0xAA, sizeof(cs.buf));
 
-  vtParse3(bytes, num_bytes, &term, &cs, handle);
+  vtParse(bytes, num_bytes, &term, &cs, handle);
   // assert(strcmp(cs.buf, expectCs->buf) == 0);
   // cs.buf[6] = 'a';
-  printf("first %x\n", cs.buf[6]);
-  printf("second %x\n", expectCs->buf[6]);
+  // printf("first %x\n", cs.buf[6]);
+  // printf("second %x\n", expectCs->buf[6]);
+  printf("first %s\n", cs.buf);
+  printf("second %s\n\n", expectCs->buf);
   // assert(cs.len == expectCs->len);
   // Need to make these four pass
   // assert(cs.priv == expectCs->priv);

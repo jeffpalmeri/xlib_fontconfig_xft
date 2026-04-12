@@ -18,6 +18,7 @@
 #include "moreStuff.h"
 #include "structs.h"
 #include "stuff.h"
+#include "EventHandlers/EventHandlers.h"
 
 #define MAX(a, b) ((a) < (b) ? (b) : (a))
 #define MAX_SNAME 1000
@@ -41,13 +42,12 @@ XftColor xft_font_color;
 XftColor xft_bg_color;
 XftDraw *draw;
 Term term;
+Window window;
 CS cs;
 XEvent evt;
 int masterFd;
 
 void drawGlyph() {}
-
-void handleKeyPress(XEvent *e) {}
 
 static void (*handler[LASTEvent])(XEvent *) = {
     [KeyPress] = handleKeyPress,
@@ -197,9 +197,9 @@ int main(int argc, char **argv) {
   attrs.colormap = XCreateColormap(display, parent, visual, AllocNone);
   attrs.event_mask = ExposureMask | KeyPressMask | StructureNotifyMask;
 
-  Window window = XCreateWindow(
-      display, parent, 0, 0, width, height, 0, XDefaultDepth(display, screen),
-      InputOutput, visual, CWBackPixel | CWColormap | CWEventMask, &attrs);
+  window = XCreateWindow(display, parent, 0, 0, width, height, 0,
+                         XDefaultDepth(display, screen), InputOutput, visual,
+                         CWBackPixel | CWColormap | CWEventMask, &attrs);
 
   if (!window)
     die("XCreateWindow failed\n");
@@ -224,7 +224,6 @@ int main(int argc, char **argv) {
   GC gc = XCreateGC(display, window, 0, NULL);
   XSetForeground(display, gc, BlackPixel(display, screen));
   XFillRectangle(display, window, gc, 0, 0, 800, 800);
-  // XFreeGC(display, gc);
 
   XMapWindow(display, window);
   XFlush(display);
@@ -255,144 +254,22 @@ int main(int argc, char **argv) {
       // de_printf("**** numRead from masterFd: %zd\n", numRead);
       // de_printf("And what the heck did I actually read?: %s\n", buf);
 
-      // for (ssize_t i = 0; i < numRead; i++) {
-      //   fprintf(stderr, "%02x ", (unsigned char)buf[i]);
-      // }
-      // de_printf("\n");
-      // de_printf("----------end------------\n");
-      // de_printf("\n\n\n\n\n");
-
-      vtParse3(buf, numRead, &term, &cs, handle_csi);
-      // XClearWindow(display, window);
-      // XFlush(display);
-      eraseCursor(font, &xft_bg_color, draw);
-      for (int x = 0; x < term.rows; x++) {
-        if (term.lines[x]->dirty == 1) {
-          // The idea here is the XClearArea is not needed if writing
-          // on the same line as before. I just tried this and it seems
-          // to work, but I should think more about if it's solid logic.
-          if (term.old_cursor_x != term.cursor_x) {
-            XY c = coord_TermToWin(x, 0);
-            XClearArea(display, window,
-                       c.x,                // x
-                       c.y - font->ascent, // y
-                       2000,               // width
-                       font->height,       // height
-                       0);
-          }
-          int y = 0;
-          while (y < term.cols && term.lines[x]->lineData[y].c != '\0') {
-            write_char2(&term.lines[x]->lineData[y]);
-            y++;
-          }
-          // XFlush(display);
-          // if(x != term.cursor_x) {
-          term.lines[x]->dirty = 0;
-        }
+      fprintf(stdout, "\n----------start------------\n");
+      for (ssize_t i = 0; i < numRead; i++) {
+        fprintf(stdout, "%02x ", (unsigned char)buf[i]);
       }
-      drawCursor(font, &xft_font_color, draw);
+      fprintf(stdout, "\n----------end------------\n");
+
+      vtParse(buf, numRead, &term, &cs, handle_csi);
+      renderTerm();
     }
 
     while (XPending(display)) {
       XNextEvent(display, &evt);
       // de_printf("---------start-------------\n");
       // de_printf("Event type is %d\n", evt.type);
-
-      if (evt.type == KeyPress) {
-        XKeyEvent *xke = &evt.xkey;
-        KeySym keysym = NoSymbol;
-        char buf[64];
-        int len;
-
-        len = XLookupString(xke, buf, sizeof buf, &keysym, NULL);
-        // de_printf("==========\n");
-        // de_printf("KeyPress len is: %d\n", len);
-        // de_printf("KeyPress buf is: %s\n", buf);
-        // de_printf("KeyPress buf in hex: ");
-        // for (int i = 0; i < len; i++) {
-        //   de_printf("0x%02x ", (unsigned char)buf[i]);
-        // }
-        // de_printf("\n");
-        // de_printf("KeySym is: %lu\n", keysym);
-        // de_printf("KeySym to string is: %s\n", XKeysymToString(keysym));
-        // de_printf("==========\n\n");
-        //
-        // if (xke->state & Mod1Mask) {
-        //   de_printf("Typed with ALT held down and len is %d\n", len);
-        // }
-
-        /*
-        // if(keysym == 65293) { // return
-        if (keysym == XK_Return) { // return
-          // Delete the cursor from the end of the line
-          drawCursor(font, &xft_bg_color, draw);
-
-          // XK_Return;
-          // term.cursor_y += 50;
-          term.cursor_y += font->height * 1.2;
-          term.cursor_x = 50;
-
-          // Draw cursor now at the start of the new line
-          drawCursor(font, &xft_font_color, draw);
-
-          ssize_t written = write(masterFd, "\n", 1);
-
-          continue;
-        }
-
-        if (keysym == 65288) { // backspace
-                               //
-          de_printf("Backspace!\n");
-          // Delete the previous cursor
-          drawCursor(font, &xft_bg_color, draw);
-
-          int cell_width = font->max_advance_width;
-          int cell_height = font->height;
-          XRectangle r;
-          r.x = 0;
-          r.y = 0;
-          r.height = cell_height;
-          r.width = cell_width;
-
-          term.cursor_x -= font->max_advance_width;
-
-          int x = term.cursor_x;
-          int y = term.cursor_y;
-
-          XftDrawRect(draw, &xft_bg_color, x, y - font->ascent, cell_width,
-                      cell_height); // width and height?
-          XftDrawSetClipRectangles(draw, x, y - font->ascent, &r, 1);
-          XftDrawSetClip(draw, 0);
-
-          // Draw new cursor after the backspace
-          drawCursor(font, &xft_font_color, draw);
-
-          continue;
-        }
-        */
-        if (len > 0) {
-          // Maybe using XKeysymToString is the more correct way than doing
-          // this?
-          // buf[len] = '\0';
-          // unsigned int codepoint = (unsigned char)buf[0];
-          // de_printf("Ok getting serious, the letter typed is %s\n", buf);
-          //
-          // FT_UInt glyph = XftCharIndex(display, font, codepoint);
-          // de_printf("XftCharIndex() seems to be called successfully %u\n",
-          // glyph); int cell_width = font->max_advance_width; int cell_height =
-          // font->height;
-          //
-          // XRectangle r;
-          // r.x = 0;
-          // r.y = 0;
-          // r.height = cell_height;
-          // r.width = cell_width;
-          //
-          // int x = term.cursor_x;
-          // int y = term.cursor_y;
-
-          ssize_t written = write(masterFd, buf, len);
-        }
+      if (handler[evt.type]) {
+        handler[evt.type](&evt);
       }
     }
   }

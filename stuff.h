@@ -7,14 +7,12 @@
 #define MARGIN_LEFT 50
 #define MARGIN_TOP 100
 
-void vtParse(char b);
-void vtParse2(const char *p, int size);
-void write_char(const char *p);
-void write_char2(JGlyph *glyph);
+void write_char(JGlyph *glyph);
 
 void drawCursor(XftFont *font, XftColor *color, XftDraw *draw);
 void eraseCursor(XftFont *font, XftColor *color, XftDraw *draw);
 
 XY coord_TermToWin(int x, int y);
 
+void renderTerm();
 #endif
