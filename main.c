@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
 
   de_printf("masterFd %i\n", masterFd);
 
-  term = (Term){40, 160, 0, 0, 0, 0, 0, 0, 0, 0};
+  term = (Term){5, 160, 0, 0, 0, 0, 0, 0, 0, 0};
   // How big will each "line" be?
   // #rows * sizeof(Line*),
   // and each Line will be (JGlyph * #cols) + int + int
@@ -172,6 +172,10 @@ int main(int argc, char **argv) {
     term.lines[i]->dirty = 1;
     term.lines[i]->row = i;
     term.lines[i]->lineData = malloc(sizeof(JGlyph) * term.cols);
+    for(int j = 0; j < term.cols; j++) {
+      term.lines[i]->lineData[j].row = i;
+      term.lines[i]->lineData[j].col = j;
+    }
   }
   // term.lines = malloc(sizeof(Line*) * term.rows);
   // for(int i = 0; i < term.rows; i++) {
@@ -251,15 +255,16 @@ int main(int argc, char **argv) {
 
     if (FD_ISSET(masterFd, &rfd)) {
       ssize_t numRead = read(masterFd, buf, 256);
-      // de_printf("**** numRead from masterFd: %zd\n", numRead);
-      // de_printf("And what the heck did I actually read?: %s\n", buf);
+      de_printf("**** numRead from masterFd: %zd\n", numRead);
+      de_printf("And what the heck did I actually read?: %.*s\n", numRead, buf);
+      // de_printf("And what the heck did I actually read2?: 0x%02x\n", (unsigned char)buf);
 
       // Helpful debug for seeing shell bytes
-      // fprintf(stdout, "\n----------start------------\n");
-      // for (ssize_t i = 0; i < numRead; i++) {
-      //   fprintf(stdout, "%02x ", (unsigned char)buf[i]);
-      // }
-      // fprintf(stdout, "\n----------end------------\n");
+      fprintf(stdout, "\n----------start------------\n");
+      for (ssize_t i = 0; i < numRead; i++) {
+        fprintf(stdout, "%02x ", (unsigned char)buf[i]);
+      }
+      fprintf(stdout, "\n----------end------------\n");
 
       vtParse(buf, numRead, &term, &cs, handle_csi);
       renderTerm();
@@ -320,3 +325,26 @@ int main(int argc, char **argv) {
       }
    ]
  * */
+
+
+// #define XK_BackSpace   0xff08  /* U+0008 BACKSPACE */
+// #define XK_Left        0xff51  /* Move left, left arrow */
+//
+//
+// case 'P': /* DCH -- Delete <n> char */
+// 	DEFAULT(csiescseq.arg[0], 1);
+// 	tdeletechar(csiescseq.arg[0]);
+// 	break;
+//
+//
+// case 'C': /* CUF -- Cursor <n> Forward */
+// case 'a': /* HPR -- Cursor <n> Forward */
+// 	DEFAULT(csiescseq.arg[0], 1);
+// 	tmoveto(term.c.x+csiescseq.arg[0], term.c.y);
+// 	break;
+//
+// 	abcdefg........LLLLB ----> CCCK
+//             ^    
+//                ^=======
+// /usr/include/X11/keysymdef.h
+// tomoveto

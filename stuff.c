@@ -88,16 +88,32 @@ void drawCursor(XftFont *font, XftColor *color, XftDraw *draw) {
   rab.width = font->max_advance_width;
   XY c = coord_TermToWin(term.cursor_x, term.cursor_y);
   XftDrawRect(draw, color, c.x, c.y - font->ascent, rab.width, rab.height);
+
+  // if(term.lines[term.cursor_x]->lineData[term.cursor_y].c != '\0') {
+  //   write_char(&term.lines[term.cursor_x]->lineData[term.cursor_y]);
+  // }
 }
 
 void eraseCursor(XftFont *font, XftColor *color, XftDraw *draw) {
-  XRectangle rab;
-  rab.x = 0;
-  rab.y = 0;
-  rab.height = font->height;
-  rab.width = font->max_advance_width;
-  XY c = coord_TermToWin(term.old_cursor_x, term.old_cursor_y);
-  XftDrawRect(draw, color, c.x, c.y - font->ascent, rab.width, rab.height);
+  // XRectangle rab;
+  // rab.x = 0;
+  // rab.y = 0;
+  // rab.height = font->height;
+  // rab.width = font->max_advance_width;
+  // XY c = coord_TermToWin(term.old_cursor_x, term.old_cursor_y);
+  // XftDrawRect(draw, color, c.x, c.y - font->ascent, rab.width, rab.height);
+
+  if(term.lines[term.old_cursor_x]->lineData[term.old_cursor_y].c != '\0') {
+    write_char(&term.lines[term.old_cursor_x]->lineData[term.old_cursor_y]);
+  } else {
+    XRectangle rab;
+    rab.x = 0;
+    rab.y = 0;
+    rab.height = font->height;
+    rab.width = font->max_advance_width;
+    XY c = coord_TermToWin(term.old_cursor_x, term.old_cursor_y);
+    XftDrawRect(draw, color, c.x, c.y - font->ascent, rab.width, rab.height);
+  }
 }
 
 void write_char(JGlyph *gly) {
@@ -115,10 +131,10 @@ void write_char(JGlyph *gly) {
 
   FT_UInt glyph = XftCharIndex(display, font, codepoint);
 
-  de_printf("What's the p pointer: %d\n", *p);
-  de_printf("What's in the buf at buf[0]: %c\n", buf[0]);
-  de_printf("Ok getting serious, the letter typed is %s\n", buf);
-  de_printf("XftCharIndex() seems to be called successfully %u\n", glyph);
+  // de_printf("What's the p pointer: %d\n", *p);
+  // de_printf("What's in the buf at buf[0]: %c\n", buf[0]);
+  // de_printf("Ok getting serious, the letter typed is %s\n", buf);
+  // de_printf("XftCharIndex() seems to be called successfully %u\n", glyph);
 
   int cell_width = font->max_advance_width;
   int cell_height = font->height;
@@ -170,7 +186,7 @@ void renderTerm() {
       // for now but I could see this not working for larger region
       // deletes. I'll actually need to clear the line first before
       // re-drawing the line. I'll address this when I come across it.
-      if (term.old_cursor_x != term.cursor_x) {
+      // if (term.old_cursor_x != term.cursor_x) {
         XY c = coord_TermToWin(x, 0);
         XClearArea(display, window,
                    c.x,                // x
@@ -178,7 +194,7 @@ void renderTerm() {
                    2000,               // width
                    font->height,       // height
                    0);
-      }
+      // }
       int y = 0;
       while (y < term.cols && term.lines[x]->lineData[y].c != '\0') {
         write_char(&term.lines[x]->lineData[y]);

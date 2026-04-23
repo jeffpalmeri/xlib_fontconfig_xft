@@ -13,10 +13,37 @@ int calc_top(Term *term) {
   return (term->cursor_x + 1) % term->rows;
 }
 
+int isControl(char p) {
+  if (p >= 0 && p <= 31)
+    return 1;
+  if (p == 127)
+    return 1;
+  // When I add utf8 decoding, the char will be
+  // of type Rune instead of char, so the following
+  // commented out condition will be valid then.
+  // if(*p >= 128 && *p <= 159) return 1;
+  return 0;
+}
+
+void handle_control(char p, Term *term) {
+  switch (p) {
+  case 8: {
+    if (term->cursor_y >= 1) {
+      term->old_cursor_y = term->cursor_y;
+      term->cursor_y--;
+    }
+  }
+  }
+}
+
 void vtParse(const char *p, int size, Term *term, CS *cs,
-              void (*handle_csi)(CS *cs, Term *term)) {
+             void (*handle_csi)(CS *cs, Term *term)) {
   for (int i = 0; i < size; i++) {
     char b = p[i];
+    if (isControl(p[i])) {
+      handle_control(p[i], term);
+      // continue;
+    }
     if (term->esc == 0) {
       if (b == 0x1b) {
         term->esc |= ESC_START;
@@ -43,9 +70,9 @@ void vtParse(const char *p, int size, Term *term, CS *cs,
         // de_printf("THIS IS A CARRIAGE RETURN!!!!!!!\n");
       } else if (*(p + i) == 9) {
         // de_printf("THIS IS A HORIZONTAL TAB!!!!!!!\n");
-      } else if (*(p+i) == 8) {
+      } else if (*(p + i) == 8) {
         // Backspace
-      } else if (*(p+i) == 7) {
+      } else if (*(p + i) == 7) {
         // Bell/Alert
       } else {
         term->lines[x]->lineData[term->cursor_y] = (JGlyph){
@@ -91,7 +118,7 @@ void vtParse(const char *p, int size, Term *term, CS *cs,
   // de_printf("DONEZOOOOOOO\n");
 }
 
-int csi_ending_char(char b) { return b > 64 && b < 126; }
+int csi_ending_char(char b) { return b >= 64 && b <= 126; }
 
 void handle_csi(CS *cs, Term *term) {
   switch (cs->mode[0]) {
@@ -101,42 +128,50 @@ void handle_csi(CS *cs, Term *term) {
   case 'l':
     // turn off bracketed paste mode (will implement later)
     break;
-  case 'm':
+  case 'm': // SGR -- Terminal attribute (color)
     break;
-  case 'K':
+  case 'C': // CUF
+    // Note: I'm not taking into account the arg right now and assuming it's 1
+    if(term->cursor_y + 1 <= term->cols) {
+      term->old_cursor_y = term->cursor_y;
+      term->cursor_y++;
+    }
+    break;
+  case 'P': { // DCH
+    int x = term->cursor_x;
+    for(int i = term->cursor_y; i < term->cols - 1; i++) {
+      if(term->lines[x]->lineData[i].c == '\0') break;
+      term->lines[x]->lineData[i].c = term->lines[x]->lineData[i+1].c;
+    }
+    break;
+  }
+  case 'K': // EL (Clear line)
     switch (cs->arg[0]) {
-      case 0: {
-        int x = term->cursor_x;
-        // 1. Delete char to the left... actually need to shift everything over to the left?
-        int i = 0;
-        while(term->lines[x]->lineData[i].c != '\0') i++;
-        // Now i is the last index of data in the row...
-        // Need to shift over starting from here and going to cursor
-        // [a b c d e f g]
-        //        ^del
-        // [a b c e f g]
-        char prevChar = '\0';
-        for(int j = i; j >= term->cursor_y; j--) {
-          JGlyph *cur = &term->lines[x]->lineData[j]; // g
-          JGlyph *prev = &term->lines[x]->lineData[j-1]; // f
-          char temp = cur->c;
-          cur->c = prevChar;
-          prevChar = prev->c;
-          prev->c = temp;
-        }
-        // term->lines[term->cursor_x]->lineData[term->cursor_y];
-        // 2. Set old cursor position
-        term->old_cursor_x = term->cursor_x;
-        term->old_cursor_y = term->cursor_y;
-        // 3. Move cursor left 1
-        term->cursor_y -= 1;
-        // term->lines[term->cursor_x]->dirty = 1; // Not needed right now
-        break;
+    case 0: {
+      for(int i = term->cursor_y; i < term->cols; i++) {
+        if(term->lines[term->cursor_x]->lineData[i].c == '\0') break;
+          term->lines[term->cursor_x]->lineData[i].c = '\0';
       }
-      case 1:
-        break;
-      case 2:
-        break;
+      break;
+    }
+    case 1:
+      break;
+    case 2:
+      break;
+    }
+    case '@': { // ICH
+      // Insert blank
+      int x = term->cursor_x;
+      int y = term->cursor_y;
+      int i = 0;
+      for(; i < term->cols; i++) {
+        if(term->lines[x]->lineData[i].c == '\0') break;
+      }
+      for(; i > y; i--) {
+        term->lines[x]->lineData[i].c = term->lines[x]->lineData[i-1].c;
+      }
+      term->lines[x]->lineData[y].c = ' ';
+      break;
     }
   }
   memset(cs, 0, sizeof(*cs));
